@@ -1,0 +1,40 @@
+{
+  "name": "monday-timer",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "electron .",
+    "build": "electron-builder --publish never",
+    "test": "node test.js"
+  },
+  "keywords": [
+    "electron",
+    "timer",
+    "monday"
+  ],
+  "author": "",
+  "license": "ISC",
+  "description": "Electron application for Monday Timer",
+  "dependencies": {
+    "dotenv": "^16.5.0",
+    "electron-window-state": "^5.0.3"
+  },
+  "devDependencies": {
+    "electron": "^36.2.1",
+    "electron-builder": "^26.0.12",
+    "nodemon": "^3.1.10"
+  },
+  "build": {
+    "appId": "com.monday.timer",
+    "productName": "Monday Timer",
+    "mac": {
+      "icon": "icons/android-chrome-512x512.png"
+    },
+    "win": {
+      "icon": "icons/favicon.ico"
+    },
+    "linux": {
+      "icon": "icons"
+    }
+  }
+}
