@@ -7,7 +7,7 @@ const url = require('url');
 const windowStateKeeper = require('electron-window-state');
 
 // Get URL from environment variables
-const targetUrl = process.env.URL || 'https://monday.com/';
+const targetUrl = process.env.URL || 'https://monday-timer.siteapp.hu';
 
 // Custom protocol registration
 const PROTOCOL = 'monday-timer';
@@ -31,7 +31,7 @@ function createWindow() {
         icon: path.join(__dirname, 'icons', 'favicon.ico'),
         titleBarStyle: 'hidden',
         ...(process.platform !== 'darwin' ? {titleBarOverlay: true} : {}),
-        trafficLightPosition: { x: 10, y: 24 },
+        trafficLightPosition: { x: 16, y: 24 },
         webPreferences: {
             nodeIntegration: false, // For security reasons
             contextIsolation: true,
@@ -65,6 +65,8 @@ app.whenReady().then(() => {
 
     session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
         details.requestHeaders['X-Electron-App'] = 'true';
+        details.requestHeaders['X-Electron-APP-Platform'] = process.platform !== 'darwin' ? 'win' : 'mac';
+
         callback({requestHeaders: details.requestHeaders});
     });
 
