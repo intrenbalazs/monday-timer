@@ -1,11 +1,12 @@
 // Load environment variables from .env file
 require('dotenv').config();
 
-const {app, BrowserWindow, protocol, session, Tray, Menu} = require('electron');
+const {app, BrowserWindow, protocol, session, Tray, Menu, dialog} = require('electron');
 const path = require('path');
 const url = require('url');
 const windowStateKeeper = require('electron-window-state');
 const positioner = require('electron-traywindow-positioner');
+const { autoUpdater } = require('electron-updater');
 
 // Get URL from environment variables
 const targetUrl = process.env.URL || 'https://monday-timer.siteapp.hu';
@@ -49,6 +50,8 @@ function createWindow() {
         userAgent: 'monday-timer-app'
     });
 
+    autoUpdater.checkForUpdatesAndNotify();
+
     // Open DevTools in development mode
     // if (process.env.NODE_ENV === 'development') {
     //   mainWindow.webContents.openDevTools();
@@ -72,14 +75,16 @@ function createTray() {
 
     // Add click handler to open menu window
     tray.on('click', () => {
-        if (menuWindow) {
-            menuWindow.focus();
+        if (menuWindow && menuWindow.isVisible()) {
+            menuWindow.close();
+            menuWindow = null;
             return;
         }
 
+
         menuWindow = new BrowserWindow({
-            width: 300,
-            height: 400,
+            width: 444,
+            height: 250,
             show: false,
             frame: false,
             resizable: false,
@@ -185,4 +190,32 @@ app.on('will-finish-launching', () => {
             }
         }
     });
+});
+
+autoUpdater.on('update-available', () => {
+    dialog.showMessageBox({
+        type: 'info',
+        title: 'Frissítés elérhető',
+        message: 'Egy új verzió elérhető. Letöltés folyamatban...',
+    });
+});
+
+autoUpdater.on('update-downloaded', () => {
+    dialog
+        .showMessageBox({
+            type: 'question',
+            buttons: ['Újraindítás most', 'Később'],
+            defaultId: 0,
+            title: 'Frissítés készen áll',
+            message: 'A frissítés letöltődött. Újraindítod most?',
+        })
+        .then((result) => {
+            if (result.response === 0) {
+                autoUpdater.quitAndInstall();
+            }
+        });
+});
+
+autoUpdater.on('error', (err) => {
+    console.error('Updater hiba:', err);
 });

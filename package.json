@@ -1,15 +1,18 @@
 {
     "name": "monday-timer",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "main": "index.js",
     "scripts": {
         "dev": "electron .",
         "mac:build": "rm -rf dist/mac && electron-builder --mac --universal --publish never --config.directories.output=dist/mac",
         "win:build": "rm -rf dist/win && electron-builder --win --x64 --publish never --config.directories.output=dist/win",
+        "mac:publish": "rm -rf dist/mac && electron-builder --mac --universal --publish always --config.directories.output=dist/mac",
+        "win:publish": "rm -rf dist/win && electron-builder --win --x64 --publish always --config.directories.output=dist/win",
         "prebuild": "rm -rf dist",
         "build": "npm run mac:build && npm run win:build",
+        "prepublish": "rm -rf dist",
         "test": "node test.js",
-        "publish:all": "rm -rf dist && electron-builder --mac --universal --win --x64 --publish always"
+        "publish": "npm run mac:publish && npm run win:publish"
     },
     "keywords": [
         "electron",
@@ -22,6 +25,7 @@
     "dependencies": {
         "dotenv": "^16.5.0",
         "electron-traywindow-positioner": "^1.2.1",
+        "electron-updater": "^6.6.2",
         "electron-window-state": "^5.0.3"
     },
     "devDependencies": {
@@ -30,7 +34,7 @@
         "nodemon": "^3.1.10"
     },
     "build": {
-        "appId": "com.monday.timer",
+        "appId": "hu.intren.monday-timer",
         "productName": "Monday Timer",
         "mac": {
             "icon": "icons/icon.icns"
@@ -38,8 +42,10 @@
         "win": {
             "icon": "icons/favicon.ico"
         },
-        "linux": {
-            "icon": "icons"
+        "publish": {
+            "provider": "github",
+            "owner": "intrenbalazs",
+            "repo": "monday-timer"
         }
     }
 }
