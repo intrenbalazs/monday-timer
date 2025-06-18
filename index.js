@@ -47,7 +47,7 @@ if (!gotTheLock) {
         });
 
         createWindow();
-        createTray();
+        //createTray();
 
         app.on('activate', function () {
             // On macOS it's common to re-create a window when the dock icon is clicked
