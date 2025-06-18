@@ -1,12 +1,13 @@
 // Load environment variables from .env file
 require('dotenv').config();
 
-const {app, BrowserWindow, protocol, session, Tray, Menu, dialog} = require('electron');
+const {app, BrowserWindow, protocol, session, Tray, Menu, dialog, shell} = require('electron');
 const path = require('path');
+const nodepath = require('node:path');
 const url = require('url');
 const windowStateKeeper = require('electron-window-state');
 const positioner = require('electron-traywindow-positioner');
-const { autoUpdater } = require('electron-updater');
+const {autoUpdater} = require('electron-updater');
 
 // Get URL from environment variables
 const targetUrl = process.env.URL || 'https://monday-timer.siteapp.hu';
@@ -18,6 +19,46 @@ const PROTOCOL = 'monday-timer';
 let mainWindow;
 let tray = null;
 let menuWindow = null;
+
+if (process.defaultApp) {
+    if (process.argv.length >= 2) {
+        app.setAsDefaultProtocolClient('electron-fiddle', process.execPath, [path.resolve(process.argv[1])]);
+    }
+} else {
+    app.setAsDefaultProtocolClient('electron-fiddle');
+}
+
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+    app.quit();
+} else {
+    app.on('second-instance', (event, commandLine, workingDirectory) => {
+        handleProtocol(commandLine.pop().slice(0, -1));
+    });
+
+    // Create mainWindow, load the rest of the app, etc...
+    app.whenReady().then(() => {
+        session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
+            details.requestHeaders['X-Electron-App'] = 'true';
+            details.requestHeaders['X-Electron-APP-Platform'] = process.platform !== 'darwin' ? 'win' : 'mac';
+
+            callback({requestHeaders: details.requestHeaders});
+        });
+
+        createWindow();
+        createTray();
+
+        app.on('activate', function () {
+            // On macOS it's common to re-create a window when the dock icon is clicked
+            if (mainWindow === null) createWindow();
+        });
+    });
+
+    app.on('open-url', (event, url) => {
+        handleProtocol(url);
+    });
+}
 
 function createWindow() {
 
@@ -35,7 +76,7 @@ function createWindow() {
         icon: path.join(__dirname, 'icons', 'favicon.ico'),
         titleBarStyle: 'hidden',
         ...(process.platform !== 'darwin' ? {titleBarOverlay: true} : {}),
-        trafficLightPosition: { x: 16, y: 24 },
+        trafficLightPosition: {x: 16, y: 24},
         webPreferences: {
             nodeIntegration: false, // For security reasons
             contextIsolation: true,
@@ -49,6 +90,15 @@ function createWindow() {
     mainWindow.loadURL(targetUrl, {
         userAgent: 'monday-timer-app'
     });
+
+    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+        if (url.startsWith('http') || url.startsWith('https')) {
+            shell.openExternal(url);
+            return { action: 'deny' };
+        }
+        return { action: 'allow' };
+    });
+
 
     autoUpdater.checkForUpdatesAndNotify();
 
@@ -104,7 +154,7 @@ function createTray() {
         });
 
         // Position the window near the tray icon
-        positioner.position(menuWindow, tray.getBounds())
+        positioner.position(menuWindow, tray.getBounds());
 
         menuWindow.once('ready-to-show', () => {
             menuWindow.show();
@@ -120,46 +170,19 @@ function createTray() {
     });
 }
 
-// This method will be called when Electron has finished initialization
-app.whenReady().then(() => {
-    // Register the custom protocol
-    app.setAsDefaultProtocolClient(PROTOCOL);
-
-    session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
-        details.requestHeaders['X-Electron-App'] = 'true';
-        details.requestHeaders['X-Electron-APP-Platform'] = process.platform !== 'darwin' ? 'win' : 'mac';
-
-        callback({requestHeaders: details.requestHeaders});
-    });
-
-    createWindow();
-    createTray();
-
-    app.on('activate', function () {
-        // On macOS it's common to re-create a window when the dock icon is clicked
-        if (mainWindow === null) createWindow();
-    });
-});
-
-// Handle custom protocol
-app.on('open-url', (event, url) => {
-    event.preventDefault();
-
-    // Parse the URL and handle it accordingly
+function handleProtocol(url) {
     const urlObj = new URL(url);
-    if (urlObj.protocol === `${PROTOCOL}:`) {
-        // Handle the custom protocol URL here
-        console.log('Custom protocol URL:', url);
-
-        // If the window is already open, focus it
-        if (mainWindow) {
-            if (mainWindow.isMinimized()) mainWindow.restore();
-            mainWindow.focus();
-        } else {
-            createWindow();
-        }
+    switch (urlObj.hostname) {
+        case 'open':
+            if (mainWindow) {
+                if (mainWindow.isMinimized()) mainWindow.restore();
+                mainWindow.focus();
+            } else {
+                createWindow();
+            }
+            break;
     }
-});
+}
 
 // Quit when all windows are closed, except on macOS
 app.on('window-all-closed', function () {
@@ -174,24 +197,30 @@ app.on('before-quit', () => {
     }
 });
 
-// Handle macOS protocol activation
-app.on('will-finish-launching', () => {
-    app.on('open-url', (event, url) => {
-        event.preventDefault();
-        // Same handling as above
-        const urlObj = new URL(url);
-        if (urlObj.protocol === `${PROTOCOL}:`) {
-            console.log('Custom protocol URL (macOS):', url);
-            if (mainWindow) {
-                if (mainWindow.isMinimized()) mainWindow.restore();
-                mainWindow.focus();
-            } else {
-                createWindow();
-            }
-        }
+autoUpdater.on('error', (err) => {
+    console.error('Updater hiba:', err);
+});
+
+autoUpdater.on('update-available', () => {
+    dialog.showMessageBox({
+        type: 'info',
+        title: 'Frissítés elérhető',
+        message: 'Egy új verzió elérhető. Letöltés folyamatban...',
     });
 });
 
-autoUpdater.on('error', (err) => {
-    console.error('Updater hiba:', err);
+autoUpdater.on('update-downloaded', () => {
+    dialog
+        .showMessageBox({
+            type: 'question',
+            buttons: ['Újraindítás most', 'Később'],
+            defaultId: 0,
+            title: 'Frissítés készen áll',
+            message: 'A frissítés letöltődött. Újraindítod most?',
+        })
+        .then((result) => {
+            if (result.response === 0) {
+                autoUpdater.quitAndInstall();
+            }
+        });
 });
