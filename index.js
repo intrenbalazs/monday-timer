@@ -3,30 +3,15 @@ require('dotenv').config();
 
 const {app, BrowserWindow, session, Tray, dialog, shell, net} = require('electron');
 const path = require('path');
-const nodepath = require('node:path');
-const url = require('url');
+
 const windowStateKeeper = require('electron-window-state');
-const positioner = require('electron-traywindow-positioner');
 const {autoUpdater} = require('electron-updater');
 
 // Get URL from environment variables
 const targetUrl = process.env.URL || 'https://monday-timer.siteapp.hu';
 
-// Custom protocol registration
-const PROTOCOL = 'monday-timer';
-
 // Keep a global reference of the window object to prevent garbage collection
 let mainWindow;
-let tray = null;
-let menuWindow = null;
-
-if (process.defaultApp) {
-    if (process.argv.length >= 2) {
-        app.setAsDefaultProtocolClient('electron-fiddle', process.execPath, [path.resolve(process.argv[1])]);
-    }
-} else {
-    app.setAsDefaultProtocolClient('electron-fiddle');
-}
 
 const gotTheLock = app.requestSingleInstanceLock();
 
@@ -47,7 +32,6 @@ if (!gotTheLock) {
         });
 
         createWindow();
-        //createTray();
 
         app.on('activate', function () {
             // On macOS it's common to re-create a window when the dock icon is clicked
@@ -110,62 +94,6 @@ function createWindow() {
     });
 }
 
-function createTray() {
-    // Create the tray icon
-    const iconPath = process.platform === 'darwin'
-        ? path.join(__dirname, 'icons', 'tray-32x32@2x.png')
-        : path.join(__dirname, 'icons', 'favicon.ico');
-
-    tray = new Tray(iconPath);
-    tray.setToolTip('Monday Timer');
-
-    // Add click handler to open menu window
-    tray.on('click', () => {
-        if (menuWindow && menuWindow.isVisible()) {
-            menuWindow.close();
-            menuWindow = null;
-            return;
-        }
-
-
-        menuWindow = new BrowserWindow({
-            width: 444,
-            height: 250,
-            show: false,
-            frame: false,
-            resizable: false,
-            alwaysOnTop: true,
-            skipTaskbar: true,
-            webPreferences: {
-                nodeIntegration: false,
-                contextIsolation: true,
-                enableRemoteModule: false
-            }
-        });
-
-        // Load the menu URL
-        const menuUrl = new URL('/menu', targetUrl).toString();
-        menuWindow.loadURL(menuUrl, {
-            userAgent: 'monday-timer-app'
-        });
-
-        // Position the window near the tray icon
-        positioner.position(menuWindow, tray.getBounds());
-
-        menuWindow.once('ready-to-show', () => {
-            menuWindow.show();
-        });
-
-        menuWindow.on('blur', () => {
-            menuWindow.close();
-        });
-
-        menuWindow.on('closed', () => {
-            menuWindow = null;
-        });
-    });
-}
-
 function handleProtocol(url) {
     const urlObj = new URL(url);
     switch (urlObj.hostname) {
@@ -189,12 +117,6 @@ app.on('window-all-closed', function () {
 app.on('before-quit', (event) => {
     // Prevent the default quit behavior
     event.preventDefault();
-
-    // Clean up tray
-    if (tray) {
-        tray.destroy();
-        tray = null;
-    }
 
     // Make HTTP request before quitting
     // Get all cookies from session
