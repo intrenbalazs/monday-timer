@@ -1,7 +1,7 @@
 // Load environment variables from .env file
 require('dotenv').config();
 
-const {app, BrowserWindow, protocol, session, Tray, Menu, dialog, shell} = require('electron');
+const {app, BrowserWindow, protocol, session, Tray, Menu, dialog, shell, globalShortcut} = require('electron');
 const path = require('path');
 const nodepath = require('node:path');
 const url = require('url');
@@ -102,10 +102,20 @@ function createWindow() {
 
     autoUpdater.checkForUpdatesAndNotify();
 
-    // Open DevTools in development mode
-    // if (process.env.NODE_ENV === 'development') {
-    //   mainWindow.webContents.openDevTools();
-    // }
+    // Register keyboard shortcuts for DevTools
+    // F12 shortcut
+    globalShortcut.register('F12', () => {
+        if (mainWindow) {
+            mainWindow.webContents.toggleDevTools();
+        }
+    });
+
+    // Ctrl+Shift+I (Windows/Linux) or Command+Option+I (macOS)
+    globalShortcut.register(process.platform === 'darwin' ? 'Command+Option+I' : 'Control+Shift+I', () => {
+        if (mainWindow) {
+            mainWindow.webContents.toggleDevTools();
+        }
+    });
 
     // Emitted when the window is closed
     mainWindow.on('closed', function () {
@@ -191,6 +201,9 @@ app.on('window-all-closed', function () {
 
 // Clean up before quitting
 app.on('before-quit', () => {
+    // Unregister all shortcuts
+    globalShortcut.unregisterAll();
+
     if (tray) {
         tray.destroy();
         tray = null;
