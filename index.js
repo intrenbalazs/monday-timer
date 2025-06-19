@@ -1,7 +1,7 @@
 // Load environment variables from .env file
 require('dotenv').config();
 
-const {app, BrowserWindow, protocol, session, Tray, Menu, dialog, shell, globalShortcut} = require('electron');
+const {app, BrowserWindow, session, Tray, dialog, shell} = require('electron');
 const path = require('path');
 const nodepath = require('node:path');
 const url = require('url');
@@ -74,7 +74,7 @@ function createWindow() {
         height: mainWindowState.height,
         title: 'Monday Timer',
         icon: path.join(__dirname, 'icons', 'favicon.ico'),
-        titleBarStyle: 'hidden',
+        titleBarStyle: process.platform !== 'darwin'? 'default' : 'hidden',
         ...(process.platform !== 'darwin' ? {titleBarOverlay: true} : {}),
         trafficLightPosition: {x: 16, y: 24},
         webPreferences: {
@@ -101,21 +101,6 @@ function createWindow() {
 
 
     autoUpdater.checkForUpdatesAndNotify();
-
-    // Register keyboard shortcuts for DevTools
-    // F12 shortcut
-    globalShortcut.register('F12', () => {
-        if (mainWindow) {
-            mainWindow.webContents.toggleDevTools();
-        }
-    });
-
-    // Ctrl+Shift+I (Windows/Linux) or Command+Option+I (macOS)
-    globalShortcut.register(process.platform === 'darwin' ? 'Command+Option+I' : 'Control+Shift+I', () => {
-        if (mainWindow) {
-            mainWindow.webContents.toggleDevTools();
-        }
-    });
 
     // Emitted when the window is closed
     mainWindow.on('closed', function () {
@@ -201,9 +186,6 @@ app.on('window-all-closed', function () {
 
 // Clean up before quitting
 app.on('before-quit', () => {
-    // Unregister all shortcuts
-    globalShortcut.unregisterAll();
-
     if (tray) {
         tray.destroy();
         tray = null;
