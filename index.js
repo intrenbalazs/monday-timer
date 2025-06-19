@@ -1,7 +1,7 @@
 // Load environment variables from .env file
 require('dotenv').config();
 
-const {app, BrowserWindow, session, Tray, dialog, shell} = require('electron');
+const {app, BrowserWindow, session, Tray, dialog, shell, net} = require('electron');
 const path = require('path');
 const nodepath = require('node:path');
 const url = require('url');
@@ -75,6 +75,7 @@ function createWindow() {
         title: 'Monday Timer',
         icon: path.join(__dirname, 'icons', 'favicon.ico'),
         titleBarStyle: process.platform !== 'darwin'? 'default' : 'hidden',
+        autoHideMenuBar: true,
         ...(process.platform !== 'darwin' ? {titleBarOverlay: true} : {}),
         trafficLightPosition: {x: 16, y: 24},
         webPreferences: {
@@ -185,11 +186,94 @@ app.on('window-all-closed', function () {
 });
 
 // Clean up before quitting
-app.on('before-quit', () => {
+app.on('before-quit', (event) => {
+    // Prevent the default quit behavior
+    event.preventDefault();
+
+    // Clean up tray
     if (tray) {
         tray.destroy();
         tray = null;
     }
+
+    // Make HTTP request before quitting
+    // Get all cookies from session
+    session.defaultSession.cookies.get({})
+        .then((cookies) => {
+            // Format cookies for the Cookie header
+            const cookieHeader = cookies.map(cookie => `${cookie.name}=${cookie.value}`).join('; ');
+
+            // Create the request with cookies
+            const request = net.request({
+                method: 'GET',
+                url: `${targetUrl}/timers/stop-all`
+            });
+
+            // Set the Cookie header if we have cookies
+            if (cookieHeader) {
+                request.setHeader('Cookie', cookieHeader);
+            }
+
+            request.on('response', (response) => {
+                console.log(`STATUS: ${response.statusCode}`);
+
+                // Read the response data
+                let responseData = '';
+                response.on('data', (chunk) => {
+                    responseData += chunk;
+                });
+
+                // When response is complete, quit the app
+                response.on('end', () => {
+                    console.log('Response completed:', responseData);
+                    // Now we can quit the app
+                    app.exit();
+                });
+            });
+
+            request.on('error', (error) => {
+                console.error('Request error:', error);
+                // If there's an error, still quit the app
+                app.exit();
+            });
+
+            // End the request
+            request.end();
+        })
+        .catch((error) => {
+            console.error('Error getting cookies:', error);
+            // If there's an error getting cookies, still make the request without cookies
+            const request = net.request({
+                method: 'GET',
+                url: `${targetUrl}/timers/stop-all`
+            });
+
+            request.on('response', (response) => {
+                console.log(`STATUS: ${response.statusCode}`);
+
+                // Read the response data
+                let responseData = '';
+                response.on('data', (chunk) => {
+                    responseData += chunk;
+                });
+
+                // When response is complete, quit the app
+                response.on('end', () => {
+                    console.log('Response completed:', responseData);
+                    // Now we can quit the app
+                    app.exit();
+                });
+            });
+
+            request.on('error', (error) => {
+                console.error('Request error:', error);
+                // If there's an error, still quit the app
+                app.exit();
+            });
+
+            // End the request
+            request.end();
+        });
 });
 
 autoUpdater.on('error', (err) => {
