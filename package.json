@@ -1,8 +1,9 @@
 {
     "name": "monday-timer",
-    "version": "1.0.11",
+    "version": "1.0.12",
     "main": "index.js",
     "scripts": {
+        "start": "electron .",
         "dev": "electron .",
         "mac:build": "rm -rf dist/mac && electron-builder --mac --universal --publish never --config.directories.output=dist/mac",
         "win:build": "rm -rf dist/win && electron-builder --win --x64 --publish never --config.directories.output=dist/win",
@@ -24,11 +25,11 @@
     "description": "Electron application for Monday Timer",
     "dependencies": {
         "dotenv": "^16.5.0",
+        "electron": "^36.2.1",
         "electron-updater": "^6.6.2",
         "electron-window-state": "^5.0.3"
     },
     "devDependencies": {
-        "electron": "^36.2.1",
         "electron-builder": "^26.0.12",
         "nodemon": "^3.1.10"
     },
