@@ -3,7 +3,8 @@ const { app, session } = require('electron');
 const { createWindow, getMainWindow } = require('./window');
 const { handleProtocol } = require('./protocol-handler');
 const { setupAutoUpdater } = require('./updater');
-const { stopAllTimers } = require('./http-service');
+const { stopAllTimers, ping} = require('./http-service');
+let pingInterval = null;
 
 function initApp() {
     const gotTheLock = app.requestSingleInstanceLock();
@@ -30,6 +31,14 @@ function initApp() {
 
         createWindow();
         setupAutoUpdater();
+
+        if (pingInterval) {
+            clearInterval(pingInterval);
+        }
+
+        pingInterval = setInterval(async () => {
+            await ping()
+        }, 1000 * 60)
 
         app.on('activate', function () {
             // On macOS it's common to re-create a window when the dock icon is clicked
