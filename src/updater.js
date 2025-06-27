@@ -2,6 +2,11 @@
 const { dialog } = require('electron');
 const { autoUpdater } = require('electron-updater');
 
+// Function to check for updates
+function checkForUpdates() {
+    autoUpdater.checkForUpdatesAndNotify();
+}
+
 function setupAutoUpdater() {
     autoUpdater.on('error', (err) => {
         console.error('Updater hiba:', err);
@@ -31,8 +36,11 @@ function setupAutoUpdater() {
             });
     });
 
-    // Check for updates
-    autoUpdater.checkForUpdatesAndNotify();
+    // Check for updates immediately
+    checkForUpdates();
+
+    // Set up hourly update checks
+    setInterval(checkForUpdates, 1000 * 60 * 60); // Check every hour
 }
 
 module.exports = {
