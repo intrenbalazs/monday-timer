@@ -4,7 +4,7 @@ const { createWindow, getMainWindow } = require('./window');
 const { handleProtocol } = require('./protocol-handler');
 const { setupAutoUpdater } = require('./updater');
 const { stopAllTimers, ping} = require('./http-service');
-let pingInterval = null;
+const { start, stop } = require('./pinger');
 
 function initApp() {
     const gotTheLock = app.requestSingleInstanceLock();
@@ -32,13 +32,7 @@ function initApp() {
         createWindow();
         setupAutoUpdater();
 
-        if (pingInterval) {
-            clearInterval(pingInterval);
-        }
-
-        pingInterval = setInterval(async () => {
-            await ping()
-        }, 1000 * 60)
+        start(ping);
 
         app.on('activate', function () {
             // On macOS it's common to re-create a window when the dock icon is clicked
@@ -63,6 +57,8 @@ function initApp() {
 
         // Stop all timers
         await stopAllTimers();
+
+        stop()
 
         // Now we can quit the app
         app.exit();
