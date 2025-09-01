@@ -3,8 +3,7 @@ const { app, session } = require('electron');
 const { createWindow, getMainWindow } = require('./window');
 const { handleProtocol } = require('./protocol-handler');
 const { setupAutoUpdater } = require('./updater');
-const { stopAllTimers, ping} = require('./http-service');
-const { start, stop } = require('./pinger');
+const { stopAllTimers} = require('./http-service');
 
 function initApp() {
     const gotTheLock = app.requestSingleInstanceLock();
@@ -32,8 +31,6 @@ function initApp() {
         createWindow();
         setupAutoUpdater();
 
-        start(ping);
-
         app.on('activate', function () {
             // On macOS it's common to re-create a window when the dock icon is clicked
             if (getMainWindow() === null) createWindow();
@@ -57,8 +54,6 @@ function initApp() {
 
         // Stop all timers
         await stopAllTimers();
-
-        stop()
 
         // Now we can quit the app
         app.exit();
