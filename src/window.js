@@ -4,7 +4,7 @@ const path = require('path');
 const windowStateKeeper = require('electron-window-state');
 
 // Get URL from environment variables
-const targetUrl = process.env.URL || 'https://monday-timer.siteapp.hu';
+const targetUrl = process.env.URL || 'https://timer.intren.hu';
 
 // Keep a global reference of the window object to prevent garbage collection
 let mainWindow;

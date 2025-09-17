@@ -2,7 +2,7 @@
 const { net, session, app } = require('electron');
 
 // Get URL from environment variables
-const targetUrl = process.env.URL || 'https://monday-timer.siteapp.hu';
+const targetUrl = process.env.URL || 'https://timer.intren.hu';
 
 function makeRequest(endpoint) {
     return new Promise((resolve) => {
